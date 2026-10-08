@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบรายงานข้อมูลการใช้พลังงาน - อบจ.หนองบัวลำภู</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Prompt & Sarabun -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pao: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#16a34a',
+                            600: '#15803d',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        tealgov: {
+                            500: '#0d9488',
+                            600: '#0f766e',
+                            700: '#115e59',
+                        },
+                        gold: {
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                        }
+                    },
+                    fontFamily: {
+                        prompt: ['Prompt', 'sans-serif'],
+                        sarabun: ['Sarabun', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Prompt', 'Sarabun', sans-serif;
+            background-color: #f8fafc;
+        }
+        .gradient-header {
+            background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #0d9488 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background: white;
+            }
+            .shadow-lg, .shadow-md, .shadow-sm {
+                box-shadow: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- Top Header / Branding Banner -->
+    <header class="gradient-header text-white shadow-md relative no-print border-b-4 border-gold-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-4 text-center md:text-left">
+                    <div class="bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/20 shadow-inner flex items-center justify-center w-16 h-16 shrink-0">
+                        <i class="fa-solid font-bold text-3xl text-gold-400 fa-leaf"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 justify-center md:justify-start">
+                            <span class="bg-gold-500 text-slate-900 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">ระบบงานภายใน</span>
+                            <span class="text-emerald-200 text-xs">อบจ.หนองบัวลำภู</span>
+                        </div>
+                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white mt-0.5">ระบบรายงานข้อมูลการใช้พลังงาน</h1>
+                        <p class="text-xs sm:text-sm text-emerald-100 font-light">องค์การบริหารส่วนจังหวัดหนองบัวลำภู (Nong Bua Lamphu PAO Energy System)</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <div class="flex bg-black/20 p-1.5 rounded-xl border border-white/10 text-sm font-medium w-full md:w-auto">
+                    <button id="tab-form-btn" onclick="switchTab('form')" class="flex-1 md:flex-none px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 bg-white text-pao-800 shadow-md font-semibold">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>บันทึกข้อมูล</span>
+                    </button>
+                    <button id="tab-report-btn" onclick="switchTab('report')" class="flex-1 md:flex-none px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 text-emerald-100 hover:text-white hover:bg-white/10">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <span>รายงานและสรุปผล</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-md w-full px-4 pointer-events-none"></div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ========================================== -->
+        <!-- SECTION 1: DATA ENTRY FORM (ส่วนบันทึกข้อมูล) -->
+        <!-- ========================================== -->
+        <div id="section-form" class="space-y-6">
+            
+            <!-- Page Title Card -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-pao-100 text-pao-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-file-circle-plus"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">แบบฟอร์มบันทึกการใช้พลังงานและทรัพยากร</h2>
+                        <p class="text-xs text-slate-500">กรุณากรอกข้อมูลประจำเดือนของหน่วยงานให้ถูกต้องครบถ้วน</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 bg-amber-50 text-amber-800 px-3 py-1.5 rounded-lg border border-amber-200 text-xs">
+                    <i class="fa-solid fa-circle-info text-amber-600"></i>
+                    <span>กำหนดส่งรายงานภายในวันสิ้นเดือนของรอบรายงาน</span>
+                </div>
+            </div>
+
+            <!-- Main Input Form -->
+            <form id="energyForm" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                
+                <!-- Section 1 & 2: Month & Division Selection -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
+                    <div class="border-b border-slate-100 pb-3 flex items-center gap-2 text-pao-700 font-bold">
+                        <i class="fa-solid fa-sliders"></i>
+                        <h3>ข้อมูลทั่วไปการรายงาน</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <!-- 1. Reporting Month Selection -->
+                        <div class="space-y-2">
+                            <label for="reportMonth" class="block text-sm font-semibold text-slate-700">
+                                1. เลือกเดือนที่ต้องการรายงาน <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-calendar-days"></i>
+                                </div>
+                                <select id="reportMonth" onchange="updateFormMonthLabels()" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-pao-500 focus:border-pao-500 transition-all font-medium text-slate-800">
+                                    <!-- Options generated by JS -->
+                                </select>
+                            </div>
+                            <p class="text-xs text-slate-500 flex items-center gap-1">
+                                <i class="fa-solid fa-clock-rotate-left text-pao-600"></i>
+                                <span>ระบบตั้งค่าเริ่มต้นเป็นเดือนล่าสุดที่ต้องทำรายงานอัตโนมัติ</span>
+                            </p>
+                        </div>
+
+                        <!-- 2. Department Selection -->
+                        <div class="space-y-2 relative">
+                            <label for="department" class="block text-sm font-semibold text-slate-700">
+                                2. เลือก สำนัก/กอง <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-sitemap"></i>
+                                </div>
+                                <input type="text" id="departmentInput" placeholder="พิมพ์ค้นหาหรือเลือกจากรายการ..." autocomplete="off" onfocus="showDeptDropdown()" oninput="filterDeptDropdown()" required class="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-pao-500 focus:border-pao-500 transition-all font-medium text-slate-800">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                                </div>
+                            </div>
+                            <!-- Search Dropdown Menu -->
+                            <div id="deptDropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 max-h-56 overflow-y-auto divide-y divide-slate-100">
+                                <!-- Options dynamically rendered -->
+                            </div>
+                            <input type="hidden" id="selectedDepartment" name="selectedDepartment" required>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 2. Electricity Section (ONLY FOR กองคลัง) -->
+                <div id="electricitySection" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4 transition-all duration-300">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2 text-amber-600 font-bold">
+                            <i class="fa-solid fa-bolt text-lg"></i>
+                            <h3>2. รายงานข้อมูลการใช้ไฟฟ้าประจำเดือน <span class="lbl-month-text font-normal text-slate-600"></span></h3>
+                        </div>
+                        <span id="elecBadge" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                            เฉพาะกองคลัง
+                        </span>
+                    </div>
+
+                    <!-- Warning for non-Kong Klang -->
+                    <div id="elecDisabledNotice" class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 text-sm flex items-center gap-3">
+                        <i class="fa-solid fa-lock text-slate-400 text-xl"></i>
+                        <div>
+                            <p class="font-semibold text-slate-700">ส่วนนี้สงวนสิทธิ์สำหรับ "กองคลัง" เท่านั้น</p>
+                            <p class="text-xs text-slate-500">หน่วยงานอื่นๆ ไม่ต้องกรอกข้อมูลการใช้ไฟฟ้าขององค์กร</p>
+                        </div>
+                    </div>
+
+                    <!-- Input Fields for Electricity -->
+                    <div id="elecFields" class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-50 pointer-events-none">
+                        <div class="space-y-1.5">
+                            <label for="elecUnits" class="block text-sm font-medium text-slate-700">
+                                2.1 จำนวนหน่วยไฟฟ้า <span class="lbl-month-text font-light text-slate-500"></span> (Kwh)
+                            </label>
+                            <div class="relative">
+                                <input type="number" step="0.01" min="0" id="elecUnits" placeholder="0.00" class="w-full pl-4 pr-16 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                <span class="absolute right-3 top-2.5 text-xs font-semibold text-slate-400 bg-slate-200 px-2 py-1 rounded">Kwh</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label for="elecCost" class="block text-sm font-medium text-slate-700">
+                                2.2 จำนวนเงินค่าไฟฟ้า <span class="lbl-month-text font-light text-slate-500"></span> (บาท)
+                            </label>
+                            <div class="relative">
+                                <input type="number" step="0.01" min="0" id="elecCost" placeholder="0.00" class="w-full pl-4 pr-16 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                <span class="absolute right-3 top-2.5 text-xs font-semibold text-slate-400 bg-slate-200 px-2 py-1 rounded">บาท</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Fuel Usage Section (ALL DEPARTMENTS) -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2 text-pao-700 font-bold">
+                            <i class="fa-solid fa-gas-pump text-lg"></i>
+                            <h3>3. การรายงานการใช้น้ำมันประจำเดือน <span class="lbl-month-text text-pao-800"></span></h3>
+                        </div>
+                        <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            รายงานทุกส่วนราชการ
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- 3.1 Gasoline -->
+                        <div class="space-y-1.5">
+                            <label for="fuelBenzine" class="block text-xs font-medium text-slate-700">
+                                3.1 ปริมาณน้ำมันเบนซิน (ลิตร)
+                            </label>
+                            <input type="number" step="0.01" min="0" id="fuelBenzine" oninput="calculateTotalFuelCost()" placeholder="0.00" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-pao-500">
+                        </div>
+
+                        <!-- 3.2 Gasohol -->
+                        <div class="space-y-1.5">
+                            <label for="fuelGasohol" class="block text-xs font-medium text-slate-700">
+                                3.2 ปริมาณน้ำมันแก๊สโซฮอล์ (ลิตร)
+                            </label>
+                            <input type="number" step="0.01" min="0" id="fuelGasohol" oninput="calculateTotalFuelCost()" placeholder="0.00" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-pao-500">
+                        </div>
+
+                        <!-- 3.3 Diesel -->
+                        <div class="space-y-1.5">
+                            <label for="fuelDiesel" class="block text-xs font-medium text-slate-700">
+                                3.3 น้ำมันดีเซล/ไบโอดีเซล (ลิตร)
+                            </label>
+                            <input type="number" step="0.01" min="0" id="fuelDiesel" oninput="calculateTotalFuelCost()" placeholder="0.00" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-pao-500">
+                        </div>
+
+                        <!-- 3.4 NGV/Gas -->
+                        <div class="space-y-1.5">
+                            <label for="fuelGas" class="block text-xs font-medium text-slate-700">
+                                3.4 ปริมาณก๊าซธรรมชาติ (ลิตร)
+                            </label>
+                            <input type="number" step="0.01" min="0" id="fuelGas" oninput="calculateTotalFuelCost()" placeholder="0.00" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-pao-500">
+                        </div>
+                    </div>
+
+                    <!-- 3.5 Total Fuel Cost -->
+                    <div class="pt-2 border-t border-slate-100">
+                        <div class="bg-emerald-50/70 p-4 rounded-xl border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <label for="fuelTotalCost" class="block text-sm font-bold text-pao-900">
+                                    3.5 รวมจำนวนเงินการใช้น้ำมันเชื้อเพลิงทุกชนิด <span class="lbl-month-text font-normal text-pao-700"></span> (บาท)
+                                </label>
+                                <p class="text-xs text-emerald-700">คำนวณราคาประเมินเบื้องต้นอัตโนมัติ (สามารถแก้ไขตัวเลขตามใบเสร็จจริงได้)</p>
+                            </div>
+                            <div class="relative w-full sm:w-64">
+                                <input type="number" step="0.01" min="0" id="fuelTotalCost" placeholder="0.00" class="w-full pl-4 pr-12 py-2.5 bg-white border border-emerald-400 rounded-xl font-bold text-pao-800 text-right focus:ring-2 focus:ring-pao-500">
+                                <span class="absolute right-3 top-3 text-xs font-bold text-emerald-700">บาท</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Overtime Work Hours & 5. Paper Usage Section Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    <!-- 4. Overtime Hours -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div class="flex items-center gap-2 text-indigo-700 font-bold">
+                                <i class="fa-solid fa-business-time text-lg"></i>
+                                <h3>4. รายงานชั่วโมงการปฏิบัติงานนอกเวลา <span class="lbl-month-text text-slate-600 font-normal"></span></h3>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="space-y-1.5">
+                                <label for="otNormal" class="block text-sm font-medium text-slate-700">
+                                    4.1 ข้อมูลการปฏิบัติงานนอกเวลาราชการปกติ (ชั่วโมง)
+                                </label>
+                                <div class="relative">
+                                    <input type="number" step="0.5" min="0" id="otNormal" placeholder="0" class="w-full pl-4 pr-16 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                                    <span class="absolute right-3 top-2 text-xs font-semibold text-slate-400 bg-slate-200 px-2 py-1 rounded">ชั่วโมง</span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <label for="otHoliday" class="block text-sm font-medium text-slate-700">
+                                    4.2 ข้อมูลการปฏิบัติงานนอกเวลาราชการวันหยุดราชการ (ชั่วโมง)
+                                </label>
+                                <div class="relative">
+                                    <input type="number" step="0.5" min="0" id="otHoliday" placeholder="0" class="w-full pl-4 pr-16 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                                    <span class="absolute right-3 top-2 text-xs font-semibold text-slate-400 bg-slate-200 px-2 py-1 rounded">ชั่วโมง</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Paper Usage -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div class="flex items-center gap-2 text-teal-700 font-bold">
+                                <i class="fa-solid fa-copy text-lg"></i>
+                                <h3>5. รายงานข้อมูลการใช้กระดาษ <span class="lbl-month-text text-slate-600 font-normal"></span></h3>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="space-y-1.5">
+                                <label for="paperReams" class="block text-sm font-medium text-slate-700">
+                                    5.1 ปริมาณการใช้กระดาษถ่ายเอกสาร <span class="lbl-month-text font-light text-slate-500"></span> (รีม)
+                                </label>
+                                <div class="relative">
+                                    <input type="number" step="0.5" min="0" id="paperReams" placeholder="0" class="w-full pl-4 pr-16 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500">
+                                    <span class="absolute right-3 top-2.5 text-xs font-semibold text-slate-400 bg-slate-200 px-2 py-1 rounded">รีม</span>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1">คำนวณจากกระดาษขนาด A4 / A3 รวมทุกขนาด</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Form Action Buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4">
+                    <button type="button" onclick="resetForm()" class="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>ล้างข้อมูล</span>
+                    </button>
+                    <button type="submit" class="w-full sm:w-auto px-8 py-3 rounded-xl bg-pao-700 hover:bg-pao-800 text-white font-semibold shadow-lg shadow-pao-700/30 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>บันทึกรายงานข้อมูล</span>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+
+
+        <!-- ========================================== -->
+        <!-- SECTION 2: REPORT & DASHBOARD (ส่วนแสดงผล) -->
+        <!-- ========================================== -->
+        <div id="section-report" class="hidden space-y-6">
+            
+            <!-- Dashboard Controls Header -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-pao-700"></i>
+                        <span>รายงานภาพรวมและสรุปผลการใช้พลังงาน</span>
+                    </h2>
+                    <p class="text-xs text-slate-500">ข้อมูลสรุปสถิติการใช้พลังงานและทรัพยากร อบจ.หนองบัวลำภู</p>
+                </div>
+
+                <!-- Filter Toolbar -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div>
+                        <select id="filterMonth" onchange="renderDashboard()" class="px-3 py-2 bg-slate-100 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-pao-500">
+                            <option value="ALL">ทุกเดือนในปี 2569</option>
+                            <!-- Month Options populated via JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <select id="filterDepartment" onchange="renderDashboard()" class="px-3 py-2 bg-slate-100 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-pao-500">
+                            <option value="ALL">ทุกสำนัก/กอง (10 หน่วยงาน)</option>
+                            <!-- Department Options populated via JS -->
+                        </select>
+                    </div>
+                    <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow flex items-center gap-1.5 transition-all">
+                        <i class="fa-solid fa-print"></i>
+                        <span>พิมพ์รายงาน</span>
+                    </button>
+                    <button onclick="exportToCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow flex items-center gap-1.5 transition-all">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>ส่งออก CSV</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Print Header Visible Only When Printing -->
+            <div class="hidden print-only text-center border-b-2 border-slate-800 pb-4 mb-6">
+                <h1 class="text-xl font-bold">รายงานสรุปการใช้พลังงานและทรัพยากร องค์การบริหารส่วนจังหวัดหนองบัวลำภู</h1>
+                <p class="text-sm text-slate-600" id="printReportSubtitle">ข้อมูลประจำปีงบประมาณ 2569</p>
+            </div>
+
+            <!-- Metric KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Card 1: Electricity -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div class="absolute -right-2 -bottom-2 text-amber-500/10 text-7xl font-bold">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-500">ไฟฟ้า (กองคลัง)</p>
+                    <h3 class="text-2xl font-bold text-amber-600 mt-1" id="kpiElecCost">0.00 <span class="text-xs font-normal text-slate-500">บาท</span></h3>
+                    <div class="mt-2 text-xs text-slate-600 flex items-center gap-1">
+                        <i class="fa-solid fa-plug text-amber-500"></i>
+                        <span id="kpiElecUnits">0 Kwh</span>
+                    </div>
+                </div>
+
+                <!-- Card 2: Fuel Cost -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div class="absolute -right-2 -bottom-2 text-pao-500/10 text-7xl font-bold">
+                        <i class="fa-solid fa-gas-pump"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-500">รวมค่าน้ำมันเชื้อเพลิง</p>
+                    <h3 class="text-2xl font-bold text-pao-700 mt-1" id="kpiFuelCost">0.00 <span class="text-xs font-normal text-slate-500">บาท</span></h3>
+                    <div class="mt-2 text-xs text-slate-600 flex items-center gap-1">
+                        <i class="fa-solid fa-droplet text-pao-600"></i>
+                        <span id="kpiFuelLiters">0 ลิตร (รวมทุกประเภท)</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: OT Hours -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div class="absolute -right-2 -bottom-2 text-indigo-500/10 text-7xl font-bold">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-500">รวมปฏิบัติงานนอกเวลา</p>
+                    <h3 class="text-2xl font-bold text-indigo-600 mt-1" id="kpiOtHours">0 <span class="text-xs font-normal text-slate-500">ชม.</span></h3>
+                    <div class="mt-2 text-xs text-slate-600 flex items-center gap-1">
+                        <i class="fa-solid fa-calendar-day text-indigo-500"></i>
+                        <span id="kpiOtBreakdown">ปกติ: 0 / วันหยุด: 0</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Paper -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div class="absolute -right-2 -bottom-2 text-teal-500/10 text-7xl font-bold">
+                        <i class="fa-solid fa-box-archive"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-500">การใช้กระดาษถ่ายเอกสาร</p>
+                    <h3 class="text-2xl font-bold text-teal-600 mt-1" id="kpiPaperReams">0 <span class="text-xs font-normal text-slate-500">รีม</span></h3>
+                    <div class="mt-2 text-xs text-slate-600 flex items-center gap-1">
+                        <i class="fa-solid fa-tree text-emerald-600"></i>
+                        <span id="kpiPaperEquiv">ประเมินประมาณ ~0 ต้นไม้</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Visual Analytics Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Chart 1: Fuel Usage Breakdown Doughnut -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-pie-chart text-pao-600"></i>
+                            <span>สัดส่วนประเภทน้ำมันเชื้อเพลิง</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-4">ปริมาณการใช้งานแบ่งตามประเภท (ลิตร)</p>
+                    </div>
+                    <div class="relative flex-1 flex items-center justify-center min-h-[220px]">
+                        <canvas id="fuelChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Dept OT & Paper Comparison Bar Chart -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-chart-column text-indigo-600"></i>
+                            <span>เปรียบเทียบการใช้กระดาษและชั่วโมง OT รายกอง</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-4">แสดงปริมาณกระดาษ (รีม) และการปฏิบัติงานนอกเวลา (ชั่วโมง)</p>
+                    </div>
+                    <div class="relative flex-1 min-h-[220px]">
+                        <canvas id="deptChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Data Table Section -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-table text-slate-600"></i>
+                            <span>ตารางสรุปการส่งรายงานรายกอง/สำนัก</span>
+                        </h3>
+                        <p class="text-xs text-slate-500">แสดงสถานะการส่งรายงานและรายละเอียดข้อมูลตัวเลข</p>
+                    </div>
+                    <div class="text-xs text-slate-500 font-medium">
+                        รายการทั้งหมด: <span id="recordCount" class="font-bold text-slate-800">0</span> รายการ
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100/80 text-slate-700 font-semibold border-b border-slate-200">
+                                <th class="py-3.5 px-4">เดือน/ปี</th>
+                                <th class="py-3.5 px-4">สำนัก/กอง</th>
+                                <th class="py-3.5 px-4 text-right">ไฟฟ้า (Kwh)</th>
+                                <th class="py-3.5 px-4 text-right">ค่าน้ำมัน (บาท)</th>
+                                <th class="py-3.5 px-4 text-right">OT ปกติ (ชม.)</th>
+                                <th class="py-3.5 px-4 text-right">OT หยุด (ชม.)</th>
+                                <th class="py-3.5 px-4 text-right">กระดาษ (รีม)</th>
+                                <th class="py-3.5 px-4 text-center no-print">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Rows generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-6 mt-12 border-t border-slate-800 no-print">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+            <p class="font-medium text-slate-300">องค์การบริหารส่วนจังหวัดหนองบัวลำภู (Nong Bua Lamphu Provincial Administrative Organization)</p>
+            <p class="text-slate-500">ระบบบันทึกและรายงานข้อมูลการใช้พลังงานตามมาตรการประหยัดพลังงานในภาครัฐ</p>
+        </div>
+    </footer>
+
+    <!-- Application Logic Javascript -->
+    <script>
+        // --- CONSTANTS & MASTER DATA ---
+        const DEPARTMENTS = [
+            "กองยุทธศาสตร์และงบประมาณ",
+            "กองคลัง",
+            "สำนักปลัด",
+            "กองช่าง",
+            "กองสาธารณสุข",
+            "กองการศึกษา",
+            "กองพัสดุ",
+            "หน่วยตรวจสอบภายใน",
+            "กองการเจ้าหน้าที่",
+            "สำนักงานเลขานุการ"
+        ];
+
+        const MONTHS_TH = [
+            "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+        ];
+
+        const CURRENT_BE_YEAR = 2569; // As requested in standard prompt context
+
+        // Estimate Fuel Prices per Liter for calculation assistance
+        const FUEL_EST_PRICES = {
+            benzine: 39.50,
+            gasohol: 36.80,
+            diesel: 32.50,
+            gas: 15.20
+        };
+
+        // Application State
+        let reportsData = [];
+        let fuelChartInstance = null;
+        let deptChartInstance = null;
+
+        window.onload = function() {
+            initMonthSelectors();
+            initDepartmentDropdown();
+            loadReportsFromStorage();
+            
+            // Default to Form Tab
+            switchTab('form');
+        };
+
+        // Initialize Month Dropdowns (Default to previous month)
+        function initMonthSelectors() {
+            const reportMonthSelect = document.getElementById('reportMonth');
+            const filterMonthSelect = document.getElementById('filterMonth');
+
+            // Determine default previous month
+            const today = new Date();
+            let prevMonthIndex = today.getMonth() - 1;
+            let year = CURRENT_BE_YEAR;
+            
+            if (prevMonthIndex < 0) {
+                prevMonthIndex = 11; // December
+            }
+
+            // Populating Month options for 2569
+            MONTHS_TH.forEach((m, idx) => {
+                const monthStr = `${m} ${year}`;
+                
+                // Form Select Option
+                const opt1 = document.createElement('option');
+                opt1.value = monthStr;
+                opt1.textContent = monthStr;
+                if (idx === prevMonthIndex) opt1.selected = true;
+                reportMonthSelect.appendChild(opt1);
+
+                // Filter Select Option
+                const opt2 = document.createElement('option');
+                opt2.value = monthStr;
+                opt2.textContent = monthStr;
+                filterMonthSelect.appendChild(opt2);
+            });
+
+            updateFormMonthLabels();
+        }
+
+        // Update Labels across form when Month selection changes
+        function updateFormMonthLabels() {
+            const selectedMonth = document.getElementById('reportMonth').value;
+            const monthLabels = document.querySelectorAll('.lbl-month-text');
+            monthLabels.forEach(el => el.textContent = `ประจำเดือน ${selectedMonth}`);
+        }
+
+        // Searchable Department Combobox Logic
+        function initDepartmentDropdown() {
+            const container = document.getElementById('deptDropdown');
+            const filterMonthSelect = document.getElementById('filterDepartment');
+
+            container.innerHTML = '';
+            
+            DEPARTMENTS.forEach(dept => {
+                // Populate Form Combobox
+                const div = document.createElement('div');
+                div.className = "px-4 py-2.5 hover:bg-pao-50 cursor-pointer text-sm font-medium text-slate-700 flex items-center justify-between";
+                div.innerHTML = `<span>${dept}</span> ${dept === 'กองคลัง' ? '<span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold">ไฟฟ้า</span>' : ''}`;
+                div.onclick = () => selectDepartment(dept);
+                container.appendChild(div);
+
+                // Populate Filter Dropdown
+                const opt = document.createElement('option');
+                opt.value = dept;
+                opt.textContent = dept;
+                filterMonthSelect.appendChild(opt);
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                const input = document.getElementById('departmentInput');
+                if (e.target !== input && !container.contains(e.target)) {
+                    container.classList.add('hidden');
+                }
+            });
+        }
+
+        function showDeptDropdown() {
+            document.getElementById('deptDropdown').classList.remove('hidden');
+        }
+
+        function filterDeptDropdown() {
+            const inputVal = document.getElementById('departmentInput').value.toLowerCase();
+            const items = document.getElementById('deptDropdown').children;
+            
+            showDeptDropdown();
+
+            Array.from(items).forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(inputVal)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Clear selected hidden department if typing new
+            document.getElementById('selectedDepartment').value = '';
+            handleDepartmentChange('');
+        }
+
+        function selectDepartment(deptName) {
+            document.getElementById('departmentInput').value = deptName;
+            document.getElementById('selectedDepartment').value = deptName;
+            document.getElementById('deptDropdown').classList.add('hidden');
+            
+            handleDepartmentChange(deptName);
+        }
+
+        // Handle Conditional Fields Activation based on Selected Department
+        function handleDepartmentChange(deptName) {
+            const elecFields = document.getElementById('elecFields');
+            const elecDisabledNotice = document.getElementById('elecDisabledNotice');
+            const elecBadge = document.getElementById('elecBadge');
+            const elecUnitsInput = document.getElementById('elecUnits');
+            const elecCostInput = document.getElementById('elecCost');
+
+            if (deptName === 'กองคลัง') {
+                elecFields.classList.remove('opacity-50', 'pointer-events-none');
+                elecDisabledNotice.classList.add('hidden');
+                elecBadge.className = 'px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+                elecBadge.textContent = 'เปิดใช้งาน (กองคลัง)';
+                elecUnitsInput.required = true;
+                elecCostInput.required = true;
+            } else {
+                elecFields.classList.add('opacity-50', 'pointer-events-none');
+                elecDisabledNotice.classList.remove('hidden');
+                elecBadge.className = 'px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300';
+                elecBadge.textContent = 'เฉพาะกองคลัง';
+                elecUnitsInput.required = false;
+                elecCostInput.required = false;
+                elecUnitsInput.value = '';
+                elecCostInput.value = '';
+            }
+        }
+
+        // Calculate Fuel Cost automatically based on input liters
+        function calculateTotalFuelCost() {
+            const b = parseFloat(document.getElementById('fuelBenzine').value) || 0;
+            const g = parseFloat(document.getElementById('fuelGasohol').value) || 0;
+            const d = parseFloat(document.getElementById('fuelDiesel').value) || 0;
+            const ngv = parseFloat(document.getElementById('fuelGas').value) || 0;
+
+            const estTotal = (b * FUEL_EST_PRICES.benzine) + 
+                             (g * FUEL_EST_PRICES.gasohol) + 
+                             (d * FUEL_EST_PRICES.diesel) + 
+                             (ngv * FUEL_EST_PRICES.gas);
+
+            if (estTotal > 0) {
+                document.getElementById('fuelTotalCost').value = estTotal.toFixed(2);
+            }
+        }
+
+        // Navigation Tab Switcher
+        function switchTab(tabName) {
+            const formTabBtn = document.getElementById('tab-form-btn');
+            const reportTabBtn = document.getElementById('tab-report-btn');
+            const sectionForm = document.getElementById('section-form');
+            const sectionReport = document.getElementById('section-report');
+
+            if (tabName === 'form') {
+                sectionForm.classList.remove('hidden');
+                sectionReport.classList.add('hidden');
+
+                formTabBtn.className = "flex-1 md:flex-none px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 bg-white text-pao-800 shadow-md font-semibold";
+                reportTabBtn.className = "flex-1 md:flex-none px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 text-emerald-100 hover:text-white hover:bg-white/10";
+            } else {
+                sectionForm.classList.add('hidden');
+                sectionReport.classList.remove('hidden');
+
+                reportTabBtn.className = "flex-1 md:flex-none px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 bg-white text-pao-800 shadow-md font-semibold";
+                formTabBtn.className = "flex-1 md:flex-none px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 text-emerald-100 hover:text-white hover:bg-white/10";
+
+                renderDashboard();
+            }
+        }
+
+        // Handle Form Submission
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const dept = document.getElementById('selectedDepartment').value || document.getElementById('departmentInput').value;
+            
+            if (!dept || !DEPARTMENTS.includes(dept)) {
+                showToast("กรุณาเลือกสำนัก/กอง จากรายการที่กำหนดให้ถูกต้อง", "error");
+                document.getElementById('departmentInput').focus();
+                return;
+            }
+
+            const month = document.getElementById('reportMonth').value;
+
+            // Form Data Object construction
+            const formData = {
+                id: `${dept}_${month}`.replace(/\s+/g, '_'),
+                month: month,
+                department: dept,
+                timestamp: new Date().toISOString(),
+                // Electricity
+                elecUnits: dept === 'กองคลัง' ? (parseFloat(document.getElementById('elecUnits').value) || 0) : 0,
+                elecCost: dept === 'กองคลัง' ? (parseFloat(document.getElementById('elecCost').value) || 0) : 0,
+                // Fuel
+                fuelBenzine: parseFloat(document.getElementById('fuelBenzine').value) || 0,
+                fuelGasohol: parseFloat(document.getElementById('fuelGasohol').value) || 0,
+                fuelDiesel: parseFloat(document.getElementById('fuelDiesel').value) || 0,
+                fuelGas: parseFloat(document.getElementById('fuelGas').value) || 0,
+                fuelTotalCost: parseFloat(document.getElementById('fuelTotalCost').value) || 0,
+                // Overtime
+                otNormal: parseFloat(document.getElementById('otNormal').value) || 0,
+                otHoliday: parseFloat(document.getElementById('otHoliday').value) || 0,
+                // Paper
+                paperReams: parseFloat(document.getElementById('paperReams').value) || 0
+            };
+
+            // Check existing record for override/update
+            const existingIndex = reportsData.findIndex(item => item.department === dept && item.month === month);
+            if (existingIndex >= 0) {
+                reportsData[existingIndex] = formData;
+                showToast(`อัปเดตข้อมูลรายงาน ${dept} (${month}) เรียบร้อยแล้ว`, "success");
+            } else {
+                reportsData.push(formData);
+                showToast(`บันทึกข้อมูลรายงาน ${dept} (${month}) สำเร็จ`, "success");
+            }
+
+            saveReportsToStorage();
+            resetForm();
+        }
+
+        function resetForm() {
+            document.getElementById('energyForm').reset();
+            document.getElementById('selectedDepartment').value = '';
+            handleDepartmentChange('');
+            updateFormMonthLabels();
+        }
+
+        function saveReportsToStorage() {
+            localStorage.setItem('pao_energy_reports', JSON.stringify(reportsData));
+        }
+
+        function loadReportsFromStorage() {
+            const saved = localStorage.getItem('pao_energy_reports');
+            if (saved) {
+                try {
+                    reportsData = JSON.parse(saved);
+                } catch (e) {
+                    reportsData = [];
+                }
+            }
+
+            // Populate sample data if empty for demo presentation
+            if (!reportsData || reportsData.length === 0) {
+                generateSampleData();
+            }
+        }
+
+        // Generate realistic initial mock data for demo presentation
+        function generateSampleData() {
+            const sampleMonth = "กันยายน 2569";
+            reportsData = [
+                {
+                    id: "กองคลัง_กันยายน_2569",
+                    month: sampleMonth,
+                    department: "กองคลัง",
+                    elecUnits: 18450.00,
+                    elecCost: 82500.00,
+                    fuelBenzine: 50.0,
+                    fuelGasohol: 180.0,
+                    fuelDiesel: 420.0,
+                    fuelGas: 0,
+                    fuelTotalCost: 22264.00,
+                    otNormal: 64.0,
+                    otHoliday: 32.0,
+                    paperReams: 28.0
+                },
+                {
+                    id: "สำนักปลัด_กันยายน_2569",
+                    month: sampleMonth,
+                    department: "สำนักปลัด",
+                    elecUnits: 0, elecCost: 0,
+                    fuelBenzine: 120.0, fuelGasohol: 310.0, fuelDiesel: 550.0, fuelGas: 0,
+                    fuelTotalCost: 34020.00,
+                    otNormal: 110.0, otHoliday: 48.0,
+                    paperReams: 45.0
+                },
+                {
+                    id: "กองช่าง_กันยายน_2569",
+                    month: sampleMonth,
+                    department: "กองช่าง",
+                    elecUnits: 0, elecCost: 0,
+                    fuelBenzine: 80.0, fuelGasohol: 150.0, fuelDiesel: 2100.0, fuelGas: 0,
+                    fuelTotalCost: 76930.00,
+                    otNormal: 145.0, otHoliday: 88.0,
+                    paperReams: 32.0
+                },
+                {
+                    id: "กองยุทธศาสตร์และงบประมาณ_กันยายน_2569",
+                    month: sampleMonth,
+                    department: "กองยุทธศาสตร์และงบประมาณ",
+                    elecUnits: 0, elecCost: 0,
+                    fuelBenzine: 0, fuelGasohol: 120.0, fuelDiesel: 180.0, fuelGas: 0,
+                    fuelTotalCost: 10266.00,
+                    otNormal: 52.0, otHoliday: 16.0,
+                    paperReams: 22.0
+                },
+                {
+                    id: "กองสาธารณสุข_กันยายน_2569",
+                    month: sampleMonth,
+                    department: "กองสาธารณสุข",
+                    elecUnits: 0, elecCost: 0,
+                    fuelBenzine: 40.0, fuelGasohol: 200.0, fuelDiesel: 620.0, fuelGas: 0,
+                    fuelTotalCost: 29090.00,
+                    otNormal: 80.0, otHoliday: 40.0,
+                    paperReams: 30.0
+                }
+            ];
+            saveReportsToStorage();
+        }
+
+        // Render Dashboard Calculations & Data Table
+        function renderDashboard() {
+            const monthFilter = document.getElementById('filterMonth').value;
+            const deptFilter = document.getElementById('filterDepartment').value;
+
+            // Filter data
+            let filtered = reportsData.filter(item => {
+                const matchMonth = (monthFilter === 'ALL' || item.month === monthFilter);
+                const matchDept = (deptFilter === 'ALL' || item.department === deptFilter);
+                return matchMonth && matchDept;
+            });
+
+            // Calculate KPIs
+            let totalElecCost = 0;
+            let totalElecUnits = 0;
+            let totalFuelCost = 0;
+            let totalFuelLiters = 0;
+            let fuelBreakdown = { benzine: 0, gasohol: 0, diesel: 0, gas: 0 };
+            let totalOtNormal = 0;
+            let totalOtHoliday = 0;
+            let totalPaper = 0;
+
+            filtered.forEach(r => {
+                totalElecCost += r.elecCost || 0;
+                totalElecUnits += r.elecUnits || 0;
+                totalFuelCost += r.fuelTotalCost || 0;
+                
+                const b = r.fuelBenzine || 0;
+                const g = r.fuelGasohol || 0;
+                const d = r.fuelDiesel || 0;
+                const ngv = r.fuelGas || 0;
+
+                fuelBreakdown.benzine += b;
+                fuelBreakdown.gasohol += g;
+                fuelBreakdown.diesel += d;
+                fuelBreakdown.gas += ngv;
+                totalFuelLiters += (b + g + d + ngv);
+
+                totalOtNormal += r.otNormal || 0;
+                totalOtHoliday += r.otHoliday || 0;
+                totalPaper += r.paperReams || 0;
+            });
+
+            // Update KPI DOM
+            document.getElementById('kpiElecCost').innerHTML = `${totalElecCost.toLocaleString('th-TH', {minimumFractionDigits: 2})} <span class="text-xs font-normal text-slate-500">บาท</span>`;
+            document.getElementById('kpiElecUnits').textContent = `${totalElecUnits.toLocaleString('th-TH')} Kwh`;
+
+            document.getElementById('kpiFuelCost').innerHTML = `${totalFuelCost.toLocaleString('th-TH', {minimumFractionDigits: 2})} <span class="text-xs font-normal text-slate-500">บาท</span>`;
+            document.getElementById('kpiFuelLiters').textContent = `${totalFuelLiters.toLocaleString('th-TH', {maximumFractionDigits: 1})} ลิตร (รวมทุกประเภท)`;
+
+            const totalOt = totalOtNormal + totalOtHoliday;
+            document.getElementById('kpiOtHours').innerHTML = `${totalOt.toLocaleString('th-TH')} <span class="text-xs font-normal text-slate-500">ชม.</span>`;
+            document.getElementById('kpiOtBreakdown').textContent = `ปกติ: ${totalOtNormal} / วันหยุด: ${totalOtHoliday}`;
+
+            document.getElementById('kpiPaperReams').innerHTML = `${totalPaper.toLocaleString('th-TH')} <span class="text-xs font-normal text-slate-500">รีม</span>`;
+            const treesSaved = (totalPaper * 0.06).toFixed(1); // Approx tree estimation
+            document.getElementById('kpiPaperEquiv').textContent = `เทียบเท่าการใช้ไม้ ~${treesSaved} ต้น`;
+
+            // Update Table Body
+            const tbody = document.getElementById('reportTableBody');
+            document.getElementById('recordCount').textContent = filtered.length;
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-slate-400">
+                            <i class="fa-solid fa-inbox text-3xl mb-2 block"></i>
+                            ไม่พบข้อมูลรายงานตามเงื่อนไขที่เลือก
+                        </td>
+                    </tr>
+                `;
+            } else {
+                filtered.forEach((r, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-colors";
+                    const fuelSumLiters = (r.fuelBenzine || 0) + (r.fuelGasohol || 0) + (r.fuelDiesel || 0) + (r.fuelGas || 0);
+
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 font-medium text-slate-800">${r.month}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-900">${r.department}</td>
+                        <td class="py-3 px-4 text-right font-mono ${r.elecUnits > 0 ? 'text-amber-700 font-semibold' : 'text-slate-400'}">
+                            ${r.elecUnits > 0 ? r.elecUnits.toLocaleString('th-TH') : '-'}
+                        </td>
+                        <td class="py-3 px-4 text-right font-mono text-emerald-700 font-semibold">
+                            ${r.fuelTotalCost.toLocaleString('th-TH', {minimumFractionDigits: 2})}
+                            <div class="text-[10px] text-slate-400 font-normal">(${fuelSumLiters.toLocaleString('th-TH')} ลิตร)</div>
+                        </td>
+                        <td class="py-3 px-4 text-right font-mono">${r.otNormal}</td>
+                        <td class="py-3 px-4 text-right font-mono">${r.otHoliday}</td>
+                        <td class="py-3 px-4 text-right font-mono font-semibold text-teal-700">${r.paperReams}</td>
+                        <td class="py-3 px-4 text-center no-print">
+                            <button onclick="deleteRecord('${r.id}')" class="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors" title="ลบข้อมูล">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Render Analytics Charts
+            renderCharts(fuelBreakdown, filtered);
+        }
+
+        // Delete Single Record
+        function deleteRecord(id) {
+            if (confirm("คุณต้องการลบรายการข้อมูลรายงานนี้ใช่หรือไม่?")) {
+                reportsData = reportsData.filter(item => item.id !== id);
+                saveReportsToStorage();
+                renderDashboard();
+                showToast("ลบข้อมูลรายงานเรียบร้อยแล้ว", "success");
+            }
+        }
+
+        // Render Interactive Visual Charts using Chart.js
+        function renderCharts(fuelData, currentFilteredReports) {
+            // 1. Fuel Doughnut Chart
+            const ctxFuel = document.getElementById('fuelChart').getContext('2d');
+            if (fuelChartInstance) fuelChartInstance.destroy();
+
+            fuelChartInstance = new Chart(ctxFuel, {
+                type: 'doughnut',
+                data: {
+                    labels: ['เบนซิน', 'แก๊สโซฮอล์', 'ดีเซล/ไบโอดีเซล', 'ก๊าซธรรมชาติ'],
+                    datasets: [{
+                        data: [fuelData.benzine, fuelData.gasohol, fuelData.diesel, fuelData.gas],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { family: 'Prompt', size: 11 } }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            // 2. Department OT vs Paper Bar Chart
+            const ctxDept = document.getElementById('deptChart').getContext('2d');
+            if (deptChartInstance) deptChartInstance.destroy();
+
+            // Group by department
+            let deptLabels = DEPARTMENTS.map(d => d.replace("กอง", "").replace("สำนักงาน", "สำนัก"));
+            let otData = new Array(DEPARTMENTS.length).fill(0);
+            let paperData = new Array(DEPARTMENTS.length).fill(0);
+
+            currentFilteredReports.forEach(r => {
+                const idx = DEPARTMENTS.indexOf(r.department);
+                if (idx !== -1) {
+                    otData[idx] += ((r.otNormal || 0) + (r.otHoliday || 0));
+                    paperData[idx] += (r.paperReams || 0);
+                }
+            });
+
+            deptChartInstance = new Chart(ctxDept, {
+                type: 'bar',
+                data: {
+                    labels: deptLabels,
+                    datasets: [
+                        {
+                            label: 'ชั่วโมง OT รวม',
+                            data: otData,
+                            backgroundColor: '#6366f1',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'กระดาษ (รีม)',
+                            data: paperData,
+                            backgroundColor: '#14b8a6',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { font: { family: 'Prompt', size: 11 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { font: { family: 'Prompt', size: 10 } },
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { font: { family: 'Prompt', size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Export Data to CSV
+        function exportToCSV() {
+            if (reportsData.length === 0) {
+                showToast("ไม่มีข้อมูลสำหรับส่งออก", "error");
+                return;
+            }
+
+            let csv = '\uFEFF'; // BOM for UTF-8 Thai Support in Excel
+            csv += 'เดือน/ปี,สำนัก/กอง,ไฟฟ้า(Kwh),ค่าไฟฟ้า(บาท),เบนซิน(ลิตร),แก๊สโซฮอล์(ลิตร),ดีเซล(ลิตร),ก๊าซ(ลิตร),ค่าน้ำมันรวม(บาท),OT ปกติ(ชม.),OT หยุด(ชม.),กระดาษ(รีม)\n';
+
+            reportsData.forEach(r => {
+                csv += `"${r.month}","${r.department}",${r.elecUnits},${r.elecCost},${r.fuelBenzine},${r.fuelGasohol},${r.fuelDiesel},${r.fuelGas},${r.fuelTotalCost},${r.otNormal},${r.otHoliday},${r.paperReams}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `รายงานใช้พลังงาน_อบจ.หนองบัวลำภู_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast("ส่งออกไฟล์ CSV เรียบร้อยแล้ว", "success");
+        }
+
+        // UI Toast Notification helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const isSuccess = type === 'success';
+            const bgColor = isSuccess ? 'bg-slate-900 border-emerald-500' : 'bg-slate-900 border-red-500';
+            const iconColor = isSuccess ? 'text-emerald-400' : 'text-red-400';
+            const icon = isSuccess ? 'fa-circle-check' : 'fa-circle-exclamation';
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border-l-4 ${bgColor} text-white shadow-2xl transition-all duration-300 transform translate-y-2 opacity-0 text-sm font-medium`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icon} ${iconColor} text-lg"></i>
+                <span class="flex-1">${message}</span>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+
+            // Animate In
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            // Auto Remove
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
